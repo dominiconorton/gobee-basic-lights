@@ -1,19 +1,40 @@
+require('dotenv').config(); // Load environment variables from .env
+
 const express = require('express');
 const app = express();
 const http = require('http');
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
-const fetch = require('node-fetch');  // Import node-fetch
+const fetch = require('node-fetch');
 const port = process.env.PORT || 3000;
 
+// Validate environment variables
+if (!process.env.OPENAI_API_KEY) {
+    console.error('ERROR: OPENAI_API_KEY environment variable is not set');
+    process.exit(1);
+}
 
-// API key - BEST PRACTICE: Use environment variables for sensitive data
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'YOUR_OPENAI_API_KEY'; // Replace or set environment variable
-
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 app.use(express.static(__dirname + '/public'));
+app.use(express.json());
 
+// API endpoint for generating sequences
+app.post('/generateSequence', async (req, res) => {
+    try {
+        const { text } = req.body;
+        if (!text) {
+            return res.status(400).json({ error: 'Text is required' });
+        }
+
+        const sequence = await generateLightSequence(text);
+        res.json(sequence);
+    } catch (error) {
+        console.error('Error generating sequence:', error);
+        res.status(500).json({ error: 'Failed to generate sequence' });
+    }
+});
 
 io.on('connection', (socket) => {
     console.log('a user connected');
@@ -24,7 +45,7 @@ io.on('connection', (socket) => {
             socket.emit('sequenceGenerated', sequence);
         } catch (error) {
             console.error("OpenAI Error:", error);
-            socket.emit('sequenceError', error.message);
+            socket.emit('sequenceError', error.message); // Emit the error message to the client
         }
     });
 
@@ -33,12 +54,11 @@ io.on('connection', (socket) => {
     });
 });
 
-
 async function generateLightSequence(query) {
     const messages = [
         {
             role: "system",
-            content: "Your goal is to translate the user text into a series of instructions for a light sequence. The light sequence is an expressive response to the users input. An example is as follows: {\"instructions\": [{\"phase\": 1,\"flashes\": 4,\"durationOn\": 300,\"durationOff\": 150,\"lightColour\": \"Green\"},{\"phase\": 2,\"flashes\": 6,\"durationOn\": 300,\"durationOff\": 100,\"lightColour\": \"Pink\"}]}"
+            content: "Your goal is to translate the user text into a series of instructions for a light sequence.  The light sequence is an expressive response to the users input. Provide the JSON response directly, without any additional text or explanations. An example is as follows: {\"instructions\": [{\"phase\": 1,\"flashes\": 4,\"durationOn\": 300,\"durationOff\": 150,\"lightColour\": \"Green\"},{\"phase\": 2,\"flashes\": 6,\"durationOn\": 300,\"durationOff\": 100,\"lightColour\": \"Pink\"}]}" // Updated prompt
         },
         { role: "user", content: query }
     ];
@@ -62,34 +82,27 @@ async function generateLightSequence(query) {
         });
 
         if (!response.ok) {
-            const errorData = await response.json(); // Get error details from OpenAI
-            const errorMessage = errorData.error && errorData.error.message ? errorData.error.message : `HTTP error ${response.status}`;
-            throw new Error(errorMessage); // Throw a more descriptive error
+            const errorData = await response.json();
+            throw new Error(errorData.error?.message || `HTTP error ${response.status}`);
         }
 
-
         const data = await response.json();
-        if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
-             throw new Error("Invalid response format from OpenAI API");
+        
+        if (!data.choices?.[0]?.message?.content) {
+            throw new Error("Invalid response format from OpenAI API");
         }
 
         try {
-             const sequence = JSON.parse(data.choices[0].message.content);
-             return sequence;
+            return JSON.parse(data.choices[0].message.content);
         } catch (parseError) {
-            console.error("Error parsing JSON:", parseError, data.choices[0].message.content); // Log the unparsable content
-            throw new Error("Error parsing light sequence from OpenAI response. The response might not be in the correct format.");
+            console.error("JSON parsing error:", parseError);
+            throw new Error("Invalid JSON response from OpenAI");
         }
-
     } catch (error) {
         console.error('OpenAI API Error:', error);
-        throw error;  // Re-throw the error to be handled by the Socket.IO error handler
+        throw error;
     }
 }
-
-
-
-
 
 server.listen(port, () => {
     console.log(`Server listening on port ${port}`);

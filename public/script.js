@@ -14,7 +14,6 @@ const minRadius = 1.0;
 const maxSpeed = 0.6;
 const minSpeed = 0.1;
 const glowIntensityFactor = 10;
-const OPENAI_API_KEY = 'YOUR_OPENAI_API_KEY'; // Replace with your actual key
 
 let fireflies = [];
 let currentSequence = null;
@@ -23,27 +22,13 @@ let isPlayingSequence = false;
 
 // OpenAI Integration
 async function generateLightSequence(query) {
-    const messages = [
-        { role: "system", content: "Your goal is to translate the user text into a series of instructions for a light sequence.  The light sequence is an expressive response to the users input. An example is as follows: {\"instructions\": [{\"phase\": 1,\"flashes\": 4,\"durationOn\": 300,\"durationOff\": 150,\"lightColour\": \"Green\"},{\"phase\": 2,\"flashes\": 6,\"durationOn\": 300,\"durationOff\": 100,\"lightColour\": \"Pink\"}]}" },
-        { role: "user", content: query }
-    ];
-
-    const requestBody = {
-        model: "gpt-4",
-        messages: messages,
-        temperature: 1,
-        max_tokens: 2048,
-        top_p: 1
-    };
-
     try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch('/generateSequence', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${OPENAI_API_KEY}`
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify({ text: query })
         });
 
         if (!response.ok) {
@@ -51,11 +36,10 @@ async function generateLightSequence(query) {
         }
 
         const data = await response.json();
-        console.log('OpenAI API Response:', data);
         return data;
     } catch (error) {
-        console.error('Error calling OpenAI API:', error);
-        throw error; // Re-throw the error to be handled by the caller
+        console.error('Error calling API:', error);
+        throw error;
     }
 }
 
