@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firefly Animation</title>
+    <link href="https://cdn.tailwindcss.com" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-900">
+    <canvas id="fireflyCanvas"></canvas>
+    <div class="input-container">
+        <textarea id="textInput"
+                  class="h-24 p-3 rounded-md bg-gray-800 text-gray-200 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none placeholder-gray-500 resize-y"
+                  placeholder="Enter text here..."></textarea>
+        <button id="sendButton" title="Send Message">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+            </svg>
+        </button>
+    </div>
+    <div id="messageBox" class="message-box"></div>
+
+    <script src="/socket.io/socket.io.js"></script>  <!-- Include Socket.IO client library -->
+    <script src="script.js"></script> 
+</body>
+</html>
