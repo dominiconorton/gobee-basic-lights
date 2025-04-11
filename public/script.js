@@ -75,19 +75,18 @@ function random(min, max) {
 function showMessage(message, duration = 3000) {
     messageBox.textContent = message;
     messageBox.style.display = 'block';
-    messageBox.style.opacity = 1;  // Ensure opacity is set for showing
+    messageBox.style.opacity = '1';
 
     if (duration > 0) {
         setTimeout(() => {
-            messageBox.style.opacity = 0; // Fade out
-            setTimeout(() => messageBox.style.display = 'none', 300); // Hide after fade out
+            messageBox.style.opacity = '0';
+            setTimeout(() => messageBox.style.display = 'none', 300);
         }, duration);
     }
 }
 
-
 function hideMessage() {
-    messageBox.style.opacity = 0;
+    messageBox.style.opacity = '0';
     setTimeout(() => messageBox.style.display = 'none', 300);
 }
 
@@ -244,29 +243,59 @@ sendButton.addEventListener('click', async () => {
     const text = textInput.value.trim();
     if (text) {
         try {
-            showMessage('Generating sequence...', 0); // Show message indefinitely
-            sendButton.disabled = true;  // Disable button during API call
+            showMessage('Generating sequence...', 0);
+            sendButton.disabled = true;
 
             const response = await generateLightSequence(text);
-            if (response.choices && response.choices[0] && response.choices[0].message) {
-                const lightSequence = JSON.parse(response.choices[0].message.content);
-                console.log('Parsed Light Sequence:', lightSequence);
-                await playSequence(lightSequence);
-                hideMessage();
-                showMessage('Sequence completed!');
-            } else {
-                throw new Error('Invalid response format from OpenAI');
+            console.log('\n=== Full API Response ===');
+            console.log('Response type:', typeof response);
+            console.log('Response keys:', Object.keys(response));
+            console.log('Response value:', JSON.stringify(response, null, 2));
+            console.log('=== End Response ===\n');
+
+            // The response should now be the sequence directly
+            if (!response || typeof response !== 'object') {
+                console.error('\n=== Invalid Response Type ===');
+                console.error('Expected object, got:', typeof response);
+                console.error('=== End Error ===\n');
+                throw new Error('Invalid response type from API');
             }
 
+            if (!response.instructions || !Array.isArray(response.instructions)) {
+                console.error('\n=== Invalid Response Structure ===');
+                console.error('Response:', JSON.stringify(response, null, 2));
+                console.error('Has instructions:', !!response.instructions);
+                console.error('Instructions is array:', Array.isArray(response.instructions));
+                console.error('=== End Invalid Structure ===\n');
+                throw new Error('Invalid response from API');
+            }
+
+            // Validate each instruction
+            for (const instruction of response.instructions) {
+                if (!instruction.phase || !instruction.flashes || 
+                    !instruction.durationOn || !instruction.durationOff || 
+                    !instruction.lightColour) {
+                    console.error('\n=== Invalid Instruction ===');
+                    console.error(JSON.stringify(instruction, null, 2));
+                    console.error('=== End Invalid Instruction ===\n');
+                    throw new Error('Invalid instruction format');
+                }
+            }
+
+            await playSequence(response);
+            hideMessage();
+            showMessage('Sequence completed!');
+
         } catch (error) {
-            console.error('Error:', error);
-            hideMessage(); // Hide "Generating..." message in case of error
-            showMessage('Error generating sequence. Please try again.');
+            console.error('\n=== Error ===');
+            console.error(error);
+            console.error('=== End Error ===\n');
+            hideMessage();
+            showMessage(`Error: ${error.message}`);
         } finally {
             sendButton.disabled = false;
-            textInput.value = ''; // Clear input field
+            textInput.value = '';
         }
-
     } else {
         showMessage('Please enter some text.');
     }

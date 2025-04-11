@@ -55,7 +55,6 @@ textarea {
     display: block;
 }
 
-
 #sendButton {
     position: absolute;
     bottom: 0.75rem;
@@ -72,10 +71,9 @@ textarea {
 }
 
 #sendButton:focus {
-     outline: none;
-     box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.5);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.5);
 }
-
 
 #sendButton svg {
     width: 1.25rem;
